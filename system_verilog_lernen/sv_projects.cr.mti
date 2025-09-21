@@ -1,0 +1,22 @@
+/home/abedM/system_verilog_lernen/adder/adder_tb.sv {1 {vlog -work work -vopt -sv -stats=none /home/abedM/system_verilog_lernen/adder/adder_tb.sv
+QuestaSim-64 vlog 2023.3_2 Compiler 2023.09 Sep  9 2023
+-- Compiling module adder_tb
+
+Top level modules:
+	adder_tb
+
+} {} {}} /home/abedM/system_verilog_lernen/shift_reg/shift_reg_tb.sv {1 {vlog -work work -vopt -sv -stats=none /home/abedM/system_verilog_lernen/shift_reg/shift_reg_tb.sv
+QuestaSim-64 vlog 2023.3_2 Compiler 2023.09 Sep  9 2023
+-- Compiling module shift_reg_tb
+
+Top level modules:
+	shift_reg_tb
+
+} {} {}} /home/abedM/system_verilog_lernen/adder/adder.sv {1 {vlog -work work -vopt -sv -stats=none /home/abedM/system_verilog_lernen/adder/adder.sv
+QuestaSim-64 vlog 2023.3_2 Compiler 2023.09 Sep  9 2023
+-- Compiling module adder
+
+Top level modules:
+	adder
+
+} {} {}}
