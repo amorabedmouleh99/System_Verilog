@@ -1,12 +1,12 @@
 module shift_reg_exercice
-                    #(parameter N=8)
+                    #(parameter int N = 8)
                     (
-                        input logic clk, syn_clr, rst,
-                        input logic load,
-                        input logic en,
-                        input logic up,
-                        output logic [N-1] d,
-                        output logic [N-1] q 
+                        input logic unsigned clk, syn_clr, rst,
+                        input logic unsigned load,
+                        input logic unsigned en,
+                        input logic unsigned up,
+                        input logic unsigned [N-1:0] d,
+                        output logic unsigned [N-1:0] q 
                     );
 
 
