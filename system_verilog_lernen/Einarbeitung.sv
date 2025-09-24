@@ -493,21 +493,167 @@ Frequenz f = 1 / T
 D = 5, Zeiteinheit = 1 ns → T = 2 * 5 * 1 ns = 10 ns
 
 f = 1 / 10 ns = 100 MHz
+//-----------------------------------------finite sate machine--------------
+
+package state_pkg;                                    // 1) Package-Name
+    typedef enum logic [1:0] { S1, S2, S3 } state_t;  // 2) Typ-Definition
+endpackage  
 
 
+Schritt-für-Schritt Erklärung:
+1) package state_pkg;
+Erstellt ein Package namens state_pkg
+Alles zwischen package und endpackage gehört zu diesem Container
+2) typedef enum logic [1:0] { S1, S2, S3 } state_t;
+typedef: Erstellt einen neuen Typ-Namen
+enum logic [1:0]: Aufzählung (Enumeration) mit 2-Bit Breite
+{ S1, S2, S3 }: Die möglichen Werte
+state_t: Der neue Typ-Name
+
+S1 = 2'b00  // 0
+S2 = 2'b01  // 1  
+S3 = 2'b10  // 2
+
+package math_pkg;
+    parameter PI = 3.14159;
+    typedef logic [31:0] word_t;
+    function automatic int add(int a, int b);
+        return a + b;
+    endfunction
+endpackage
+
+tb_mealy.dut.state_reg
+└──┬──┘ └┬┘ └────┬────┘
+   │     │       └─ Variable im DUT
+   │     └─ Instanz-Name  
+   └─ Testbench-Modul
+   module tb_mealy;                    // ← Testbench (Top-Level)
+    edge_detect_mealy dut (         // ← Instanz des DUT
+        // Ports...
+    );
+    
+    // In der DUT-Instanz existiert:
+    // state_t state_reg;           // ← Diese Variable wollen wir erreichen
+    logic current_state;
+assign current_state = dut.state_reg;
+//                     └─┬─┘└────┬────┘
+//                  Instanz   Variable
+//                   Name    im DUT
+endmodule
+edge_detect_mealy dut (...)  // ← "dut" ist der Name der Instanz
+
+//                └─┬─┘
+//            Frei wählbarer Name
+// Für echte Hardware: Debug-Ports hinzufügen
+module edge_detect_mealy(
+    input logic clk, rst, in,
+    output logic out,
+    output logic debug_state    // ← Extra Port für Debug
+);
+    assign debug_state = state_reg;  // Expliziter Ausgang
+endmodule
+//-------------------------------------Modeling Memory-------------------------
+Ein Register-File ist ein Array aus Registern (Flipflops), das man über Adressen liest/schreibt. 
+In SystemVerilog modellierst du das als zweidimensionales Array:
+logic [DATA_N-1:0] regs [0:SIZE-1];  // SIZE Register, jedes DATA_N Bit breit
+SIZE = Anzahl der Register (z. B. 32)
+
+DATA_N = Breite der Daten (z. B. 32 Bit)
+
+$clog2(SIZE) = Anzahl der Adressbits (z. B. 5 für 32 Register)
+as macht $clog2?
+
+$clog2(N) ist die ceiling-Log2-Funktion (aufgerundet):
+sie liefert die kleinste ganze Zahl k, so dass 2^k >= N.
+
+Damit bekommst du die Anzahl der Bits, die man braucht, um Werte von 0 bis N-1 darzustellen.
+
+Warum [$clog2(SIZE)-1:0]?
+
+In SystemVerilog schreibt man Bitvektoren als [MSB:LSB].
+Wenn ADDR_W = $clog2(SIZE), dann hat ein Adressvektor ADDR_W Bits, mit Indizes von ADDR_W-1 (MSB) bis 0 (LSB).
+Also: logic [ADDR_W-1:0] addr;
+module reg_file #(
+  parameter int DATA_N = 32,   // Datenbreite (Bits pro Register)
+  parameter int SIZE   = 32    // Anzahl Register
+)(
+  input  logic                     clk,
+  input  logic                     wr_en,
+  input  logic [$clog2(SIZE)-1:0]  w_addr,   // Schreibadresse
+  input  logic [$clog2(SIZE)-1:0]  r0_addr,  // Leseadresse Port 0
+  input  logic [$clog2(SIZE)-1:0]  r1_addr,  // Leseadresse Port 1
+  input  logic [DATA_N-1:0]        w_data,   // Schreibdaten
+  output logic [DATA_N-1:0]        r0_data,  // Lesedaten Port 0
+  output logic [DATA_N-1:0]        r1_data   // Lesedaten Port 1
+);
 
 
+logic [DATA_N-1:0] ram [0:SIZE-1];
+//                     └────┬────┘
+//                    Array-Indizes: 0, 1, 2, ..., SIZE-1
 
+logic [DATA_N-1:0] ram [SIZE-1:0];
+//                     └────┬────┘
+//                    Array-Indizes: SIZE-1, SIZE-2, ..., 1, 0
+// Bei [0:SIZE-1]:
+ram[0]     // Erstes Element
+ram[1]     // Zweites Element  
+ram[SIZE-1] // Letztes Element
 
-
-
-
-
-
-
-
-
-
+// Bei [SIZE-1:0]:
+ram[SIZE-1] // Erstes Element (!)
+ram[SIZE-2] // Zweites Element
+ram[0]     // Letztes Element (!)
+ //Single-port RAM
+  module single_port_ram
+ #(
+ parameter DATA_N = 32,
+ SIZE
+ = 128
+ )
+ (
+ );
+ input logic clk,
+ input logic wr_en,
+ input logic [$clog2(SIZE)-1:0] addr,
+ input logic [DATA_N-1:0] w_data,
+ output logic [DATA_N-1:0] r_data,
+ logic [DATA_N-1:0] ram [0:SIZE-1];
+ always_ff @(posedge clk) begin
+ if (wr_en)
+ ram[addr] <= w_data;
+ r_data <= ram[addr];
+ end
+ endmodule
+ //Dual-port RAM
+  module dual_port_ram
+ #(
+ parameter DATA_N = 32,
+ SIZE
+ = 128
+ )
+ (
+ 31
+SystemVerilog Guide
+ Harvard CS141
+ input logic clk,
+ input logic we0, we1,
+ input logic [$clog2(SIZE)-1:0] addr0, addr1,
+ input logic [DATA_N-1:0] w0_data, w1_data,
+ output logic [DATA_N-1:0] r0_data, r1_data
+ );
+ logic [DATA_N:0] ram [0:SIZE-1];
+ always_ff @(posedge clk) begin
+ if (wr0)
+ ram[addr] <= w0_data;
+ r0_data <= ram[addr];
+ end
+ always_ff @(posedge clk) begin
+ if (wr1)
+ ram[addr] <= w1_data;
+ r1_data <= ram[addr];
+ end
+ endmodule
 
 
 
